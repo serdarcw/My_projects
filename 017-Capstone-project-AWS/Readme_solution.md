@@ -4,27 +4,25 @@
 
 The Clarusway Blog Page Application aims to deploy blog application as a web application written Django Framework on AWS Cloud Infrastructure. This infrastructure has Application Load Balancer with Auto Scaling Group of Elastic Compute Cloud (EC2) Instances and Relational Database Service (RDS) on defined VPC. Also, The Cloudfront and Route 53 services are located in front of the architecture and manage the traffic in secure. User is able to upload pictures and videos on own blog page and these are kept on S3 Bucket. This architecture will be created by Firms DevOps Guy.
 
-## Problem Solution Order
-
 ## Steps to Solution
   
 ### Step 1: Create dedicated VPC and whole components
         
     ### VPC
-    - Lets create VPC first. 
+    - Create VPC. 
         create a vpc named `aws_capstone-VPC` CIDR blok is `90.90.0.0/16` 
         no ipv6 CIDR block
         tenancy: default
     - select `aws_capstone-VPC` VPC, click `Actions` and `enable DNS hostnames` for the `aws_capstone-VPC`. 
-    
+
     ## Subnets
-    - Go to the subnet section on left hand side and click it. Select create subnet.
+    - Create Subnets
         - Create a public subnet named `aws_capstone-public-subnet-1A` under the vpc aws_capstone-VPC in AZ us-east-1a with 90.90.10.0/24
         - Create a private subnet named `aws_capstone-private-subnet-1A` under the vpc aws_capstone-VPC in AZ us-east-1a with 90.90.11.0/24
         - Create a public subnet named `aws_capstone-public-subnet-1B` under the vpc aws_capstone-VPC in AZ us-east-1b with 90.90.20.0/24
         - Create a private subnet named `aws_capstone-private-subnet-1B` under the vpc aws_capstone-VPC in AZ us-east-1b with 90.90.21.0/24
 
-    - To coordinate `auto-assign IP` setting up for public subnets. Select each public subnets and click Modify "auto-assign IP settings" and select "Enable auto-assign public IPv4 address" 
+    - Set `auto-assign IP` up for public subnets. Select each public subnets and click Modify "auto-assign IP settings" and select "Enable auto-assign public IPv4 address" 
 
     ## Internet Gateway
 
@@ -42,10 +40,10 @@ The Clarusway Blog Page Application aims to deploy blog application as a web app
     - Go to the endpoint section on the left hand menu
     - select endpoint
     - click create endpoint
-    - Select `com.amazonaws.us-east-1.s3` as service name (We can filter the list writing S3)
-    - select `aws_capstone-VPC`
-    - select private route table
-    - Policy `Full Access`
+    - service name  : `com.amazonaws.us-east-1.s3`
+    - VPC           : `aws_capstone-VPC`
+    - Route Table   : private route tables
+    - Policy        : `Full Access`
     - Create
 
 ### Step 2: Create Security Groups (ALB ---> EC2 ---> RDS)
@@ -85,7 +83,7 @@ HTTPS (443) ----> anywhere
 SSH (22)    ----> anywhere
 
 ### Step 3: Create RDS
-we should arrange subnet group for our custom VPC. Click `subnet Groups` on the left hand menu and click `create DB Subnet Group` 
+First we create a subnet group for our custom VPC. Click `subnet Groups` on the left hand menu and click `create DB Subnet Group` 
 ```text
 Name               : aws_capstone_RDS_Subnet_Group
 Description        : aws capstone RDS Subnet Group
@@ -131,33 +129,32 @@ Go to the S3 Consol and lets create two buckets.
 
 - Click Create Bucket
 ```text
-Bucket Name : awscapstones3<name>blog
+Bucket Name : awscapstones3<YOUR NAME>blog
 Region      : N.Virginia
 Block all public access : Unchecked
 Other Settings are keep them as are
 create bucket
 ```
 
-
 2. S3 Bucket for failover scenario
 
 - Click Create Bucket
 ```text
-Bucket Name : www.clarusway.us
+Bucket Name : www.<YOUR DNS NAME>
 Region      : N.Virginia
 Block all public access : Unchecked
 Please keep other settings as are
-create bucket
 ```
+- create bucket
 
-- Selects created `www.clarusway.us` bucket ---> Properties ---> Static website hosting
+- Selects created `www.<YOUR DNS NAME>` bucket ---> Properties ---> Static website hosting
 ```text
 Static website hosting : Enable
 Hosting Type : Host a static website
 Index document : index.html
 save changes
 ```
-- Select Upload and upload index.html and sorry.jpg files from given folder---> Permissions ---> Grant public-read access ---> Checked warning massage
+- Select `www.<YOUR DNS NAME>` bucket ---> select Upload and upload `index.html` and `sorry.jpg` files from given folder---> Permissions ---> Grant public-read access ---> Checked warning massage
 
 ## Step 5: Copy files downloaded or cloned from `Clarusway_project` repo on Github 
 
@@ -202,12 +199,12 @@ Please follow and apply the instructions in the developer_notes.txt.
 To launch NAT instance, go to the EC2 console and click the create button.
 
 ```text
-Go to the EC2 console and click Launch instance 
+write "NAT" into the filter box
 select NAT Instance `amzn-ami-vpc-nat-hvm-2018.03.0.20181116-x86_64-ebs` 
 Instance Type: t2.micro
 Configure Instance Details  
     - Network : aws_capstone_VPC
-    - Subnet  : aws_capstone-public-subnet-1A (Doesn't matter)
+    - Subnet  : aws_capstone-public-subnet-1A (Please select one of your Public Subnets)
     - Other features keep them as are
 Storage ---> Keep it as is
 Tags: Key: Name     Value: AWS Capstone NAT Instance
@@ -216,7 +213,8 @@ Configure Security Group
 Review and select our own pem key
 ```
 
-- select NAT instance and enable stop source/destination check
+!!!IMPORTANT!!!
+- select newly created NAT instance and enable stop source/destination check
 - go to private route table and write a rule
 ```
 Destination : 0.0.0.0/0
@@ -227,10 +225,11 @@ Save
 ## Step 10: Create Launch Template and IAM role for it
 Go to the IAM role console click role on the right hand menu than create role
 ```text
-Select EC2 as trusted entity ---> click Next:Permission
-Choose AmazonS3FullAccess policy
-No tags
-Role Name: aws_capstone_EC2_S3_Full_Access
+trusted entity  : EC2 as  ---> click Next:Permission
+Policy          : AmazonS3FullAccess policy
+Tags            : No tags
+Role Name       : aws_capstone_EC2_S3_Full_Access
+Description     : For EC2, S3 Full Access Role
 ```
 
 To create Launch Template, go to the EC2 console and select `Launch Template` on the left hand menu. Tab the Create Launch Template button.
@@ -268,12 +267,11 @@ python3 manage.py runserver 0.0.0.0:80
 - create launch template
 
 ## Step 11: Create certification for secure connection
-To get certificate for our Domain name and sub domains, Go to the certification manager console and click `request a certificate` button. Select `Request a public certificate`, then `request a certificate` ---> *.clarusway.us ---> DNS validation ---> No tag ---> Review ---> click confirm and request button. Then it takes a while to be activated. 
+Go to the certification manager console and click `request a certificate` button. Select `Request a public certificate`, then `request a certificate` ---> `*.<YOUR DNS NAME>` ---> DNS validation ---> No tag ---> Review ---> click confirm and request button. Then it takes a while to be activated. 
 
 ## Step 12: Create ALB and Target Group
-Go to the Load Balancer section on the left hand side menu on EC2 console. Click `create Load Balancer` button and select Application Load Balancer
+Go to the Load Balancer section on the left hand side menu of EC2 console. Click `create Load Balancer` button and select Application Load Balancer
 ```text
-Application Load Balancer ---> Create
 Name                    : awscapstoneALB
 Schema                  : internet-facing
 Listeners               : HTTPS, HTTP
@@ -308,7 +306,7 @@ without register any target click Next: Review
 ```
 - click create
 
-To ridirect traffic from HTTP to HTTPS, go to the ALB console and select Listeners sub-section.
+To redirect traffic from HTTP to HTTPS, go to the ALB console and select Listeners sub-section.
 
 ```text
 select HTTP: 80 rule ---> click edit
@@ -318,7 +316,7 @@ select HTTP: 80 rule ---> click edit
     - Original host, path, query
     - 301 - permanently moved
 ```
-Lets go ahead and look at our ALB DNS --> it going to say "it is not safe", however, it will be fixed after connect ALB to our DNS with Route 53
+Lets go ahead and look at our ALB DNS --> it going to say "it is not safe", however, it will be fixed after settings of Route 53
 
 ## Step 13: Create Autoscaling Group with Launch Template 
 
@@ -339,7 +337,8 @@ Network                         :
     - Subnets                   : Private 1A and Private 1B
 ```
 
-Configure advanced options
+- Configure advanced options
+
 ```text
 - Load balancing                                : Attach to an existing load balancer
 - Choose from your load balancer target groups  : awscapstoneTargetGroup
@@ -348,7 +347,8 @@ Configure advanced options
     - Health check grace period     : 300
 ```
 
-Configure group size and scaling policies
+- Configure group size and scaling policies
+
 ```text
 Group size
     - Desired capacity  : 2
@@ -361,7 +361,7 @@ Scaling policies
         - Target value              : 70
 ```
 
-Add notifications
+- Add notifications
 ```text
 Create new Notification
     - Notification1
@@ -370,13 +370,14 @@ Create new Notification
         - event type                : select all 
 ```
 
-<!-- WARNING!!! If you need to look at inside one of your instance to make sure if our files have pulled from Github, please follow these steps
+<!-- WARNING!!! Sometimes your EC2 has a problem after you create autoscaling group, If you need to look inside one of your instance to make sure where the problem is, please follow these steps...
 
 ```bash
 eval "$(ssh-agent)" (your local)
 ssh-add <pem-key>   (your local )
 ssh -A ec2-user@<Public IP or DNS name of NAT instance> (your local)
 ssh ubuntu@<Public IP or DNS name of private instance>  (NAT instance)
+You are in the private EC2 instance
 ``` -->
 
 ## Step 14: Create Cloudfront in front of ALB
@@ -385,21 +386,26 @@ Go to the cloudfront menu and click start
 ```text
 Origin Domain Name          : aws-capstone-ALB-1947210493.us-east-2.elb.amazonaws.com
 Origin Path                 : Leave empty (this means, define for root '/')
-Enable Origin Shield        : No
-Origin ID                   : Keep it as given by AWS
+Protocol                    : Match Viewer
+HTTP Port                   : 80
+HTTPS                       : 443
 Minimum Origin SSL Protocol : Keep it as is
-Origin Protocol Policy      : Match Viewer
-Other stuff                 : Keep it as is
+Name                        : Keep it as is
+Add custom header           : No header
+Enable Origin Shield        : No
+Additional settings         : Keep it as is
 ```
 Default Cache Behavior Settings
 ```text
-Viewer Protocol Policy      : Redirect HTTP to HTTPS
-Allowed HTTP Methods        : GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE
-Cached HTTP Methods         : Select OPTIONS
-Cache and origin request settings           : Use legacy cache settings
-Cache Based on Selected Request Headers     : Whitelist
-Whitelist Headers:
-    Select ones on below
+Path pattern                                : Default (*)
+Compress objects automatically              : Yes
+Viewer Protocol Policy                      : Redirect HTTP to HTTPS
+Allowed HTTP Methods                        : GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE
+Cached HTTP Methods                         : Select OPTIONS
+Cache key and origin requests
+- Use legacy cache settings
+  Headers     : Include the following headers
+    Add Header
     - Accept
     - Accept-Charset
     - Accept-Datetime
@@ -411,12 +417,12 @@ Whitelist Headers:
     - Origin
     - Referrer
 Forward Cookies                         : All
-Query String Forwarding and Caching     : Forward all, cache based all 
-Compress Objects Automatically          : Yes
-Other stuff                             : Keep them as are
+Query String Forwarding and Caching     : All
+Other stuff                             : Keep them as are 
 ```
 - Distribution Settings
 ```text
+Price Class                             : Use all edge locations (best performance)
 Alternate Domain Names                  : www.clarusway.us
 SSL Certificate                         : Custom SSL Certificate (example.com) ---> Select your certificate creared before
 Other stuff                             : Keep them as are                  
@@ -425,6 +431,7 @@ Other stuff                             : Keep them as are
 ## Step 15: Create Route 53 with Failover settings
 Come to the Route53 console and select Health checks on the left hand menu. Click create health check
 Configure health check
+
 ```text
 Name                : aws capstone health check
 What to monitor     : Endpoint
@@ -437,7 +444,7 @@ Other stuff         : Keep them as are
 ```
 - Click Hosted zones on the left hand menu
 
-- click your Hosted zone        : clarusway.us
+- click your Hosted zone        : <YOUR DNS NAME>
 
 - Create Failover scenario
 
@@ -446,13 +453,13 @@ Other stuff         : Keep them as are
 - Select Failover ---> Click Next
 ```text
 Configure records
-Record name             : www.clarusway.us
+Record name             : www.<YOUR DNS NAME>
 Record Type             : A - Routes traffic to an IPv4 address and some AWS resources
 TTL                     : 300
 
 ---> First we'll create a primary record for cloudfront
 
-Failover records to add to clarusway.us ---> Define failover record
+Failover record to add to your DNS ---> Define failover record
 
 Value/Route traffic to  : Alias to cloudfront distribution
                           - Select created cloudfront DNS
@@ -463,7 +470,7 @@ Record ID               : Cloudfront as Primary Record
 
 ---> Second we'll create secondary record for S3
 
-Failover records to add to clarusway.us ---> Define failover record
+Failover another record to add to your DNS ---> Define failover record
 
 Value/Route traffic to  : Alias to S3 website endpoint
                           - Select Region
@@ -500,6 +507,7 @@ Role description    : This role give a permission to lambda to reach S3 and Dyna
 ```
 
 then, go to the Lambda Console and click create function
+
 - Basic Information
 ```text
 
@@ -518,9 +526,9 @@ Network                 :
 
 ## Step 17-18: Create S3 Event and set it as trigger for Lambda Function
 
-Go to the S3 console and select the S3 bucket named `awscapstonec3<name>blog.
+Go to the S3 console and select the S3 bucket named `awscapstonec3<name>blog`.
 
-- Go to the properties menu ---> Scroll down and come to the Event notifications part
+- Go to the properties menu ---> Go to the Event notifications part
 
 - Click create event notification for creating object
 ```text
@@ -535,22 +543,26 @@ click save
 ```text
 
 ```
-- After create an event go to the awscapstonelambdafunction lambda Function and click add trigger on the top left hand side. 
+- After create an event go to the `awscapstonelambdafunction` lambda Function and click add trigger on the top left hand side.
+
+- For defining trigger for creating objects
 ```text
-For defining trigger for creating objects
 Trigger configuration   : S3
 Bucket                  : awscapstonec3<name>blog
 Event type              : All object create events
 Check the warning message and click add ---> sometimes it says overlapping situation. When it occurs, try refresh page and create a new trigger or remove the s3 event and recreate again. then again create a trigger for lambda function
+```
 
-For defining trigger for deleting objects
+- For defining trigger for deleting objects
+```bash
+
 Trigger configuration   : S3
 Bucket                  : awscapstonec3<name>blog
 Event type              : All object delete events
 Check the warning message and click add ---> sometimes it says overlapping situation. When it occurs, try refresh page and create a new trigger or remove the s3 event and recreate again. then again create a trigger for lambda function
 ```
 
-- Go to the code part and select lambda_function.py ---> remove default part and paste a code on below
+- Go to the code part and select lambda_function.py ---> remove default code and paste a code on below. If you give DynamoDB a different name, please make sure to change it into the code. 
 
 ```python
 import json
@@ -584,4 +596,4 @@ def lambda_handler(event, context):
 
 - WE ALL SET
 
-- Congrulations!! You have finished your AWS Capstone Project 
+- Congratulations!! You have finished your AWS Capstone Project
