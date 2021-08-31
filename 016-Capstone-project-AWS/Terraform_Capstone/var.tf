@@ -70,10 +70,10 @@ variable "sub_domain_name" {
 
 variable "dynamo_write_capacity" {
   default = "3"
-  #definition = "sub domain name to publish website"
+  #definition = "dynamo write capacity"
 }
 
 variable "dynamo_read_capacity" {
   default = "3"
-  #definition = "sub domain name to publish website"
+  #definition = "dynamo read capacity"
 }
