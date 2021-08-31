@@ -1,4 +1,3 @@
-# This code should be run on python3.8
 import json
 import boto3
 
