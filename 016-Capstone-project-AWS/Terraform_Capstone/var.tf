@@ -60,12 +60,12 @@ variable "serdar-dynamic-ports" {
 
 variable "mydomainname" {
   default = "clarusway.us"
-  #definition = "Domain Name"
+  #definition = "Your Domain Name"
 }
 
 variable "sub_domain_name" {
   default = "www.clarusway.us"
-  #definition = "sub domain name to publish website"
+  #definition = "Your sub domain name to publish website"
 }
 
 variable "dynamo_write_capacity" {
