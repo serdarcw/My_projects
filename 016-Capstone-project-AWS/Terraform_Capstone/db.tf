@@ -20,11 +20,10 @@ resource "aws_db_instance" "my_db_instance" {
   port                 = 3306
   allow_major_version_upgrade = false
   auto_minor_version_upgrade = true
-  #parameter_group_name = "default.mysql5.7"
   skip_final_snapshot  = true
   max_allocated_storage = 20
   db_subnet_group_name  = aws_db_subnet_group.aws_capstone_vpc_db_subnet_group.id
   vpc_security_group_ids = [aws_security_group.aws_capstone_RDS_Sec_Group.id]
-  # maintenance_window = "Mon:00:00-Mon:03:00"
-  # backup_window      = "04:00-06:00"
+  maintenance_window = "Mon:00:00-Mon:03:00"
+  backup_window      = "04:00-06:00"
 }

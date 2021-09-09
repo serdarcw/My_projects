@@ -1,3 +1,4 @@
+# This role for ec2's on which our apps will run. They need to reach s3 because of app.
 resource "aws_iam_instance_profile" "test_profile" {
   name = "test_profile"
   role = aws_iam_role.aws_capstone_s3_full_access.name

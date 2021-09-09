@@ -1,6 +1,6 @@
 resource "aws_autoscaling_group" "web-asg" {
   name                      = "web-asg"
-  depends_on                = [aws_internet_gateway.aws_capstone_vpc_igw, aws_db_instance.my_db_instance, aws_s3_bucket.aws_capstone_bucket, aws_lb_target_group.aws_capstone_target_group] # If autoscaling doesn't wait RDS instance, migration command of userdata has problem. 
+  depends_on                = [aws_internet_gateway.aws_capstone_vpc_igw, aws_db_instance.my_db_instance, aws_s3_bucket.aws_capstone_bucket, aws_lb_target_group.aws_capstone_target_group] # If autoscaling doesn't wait RDS instance, migration command of userdata has problem. Thts why qutoscaling has to wait RDS
   max_size                  = 3
   min_size                  = 1
   health_check_grace_period = 90

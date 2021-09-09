@@ -3,7 +3,7 @@ resource "aws_lambda_function" "s3_to_dynamo_Lambda" {
   function_name = "awscapstonelambda"
   role          = aws_iam_role.aws_capstone_lambda_role.arn
   handler       = "lambda_s3_dynamo.lambda_handler"
-  # The name of handler has to start with filename than .lambda_handler
+  # The name of handler has to start with filename than come after .lambda_handler
 
   # The filebase64sha256() function is available in Terraform 0.11.12 and later
   # For Terraform 0.11.11 and earlier, use the base64sha256() function and the file() function:
