@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: my-local-pv-2
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+  - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: my-local-storage
+  local:
+    path: /home/ubuntu/pv-data-2 # Before you apply this please create this directory on kube-worker-1
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - kube-worker-2
+
+# Before remove all infrastructure, please remove pvc, and pv than scale statefılset to 0 and then remove statefulset

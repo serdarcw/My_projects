@@ -1,0 +1,130 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: |
+  This template for quest application. It runs ApplicationLoadBalancer.
+Resources:
+  ALBSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: Enable HTTP for ALB #required
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+  WebServersSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: Enable HTTP for App only from ALB #required
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          SourceSecurityGroupId: !GetAtt ALBSecurityGroup.GroupId
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          SourceSecurityGroupId: !GetAtt ALBSecurityGroup.GroupId
+  WebServerLT:
+    Type: "AWS::EC2::LaunchTemplate"
+    Properties:
+      LaunchTemplateData:
+        ImageId: ami-02e136e904f3da870
+        InstanceType: t2.micro
+        KeyName: ummuy
+        SecurityGroupIds:
+          - !GetAtt WebServersSecurityGroup.GroupId
+        TagSpecifications:
+          - ResourceType: instance
+            Tags:
+              - Key: Name
+                Value: !Sub Web Server of ${AWS::StackName} Stack
+        UserData:
+          Fn::Base64: |
+            #! /bin/bash
+            yum update -y
+            yum install git -y
+            amazon-linux-extras install docker -y
+            systemctl start docker
+            systemctl enable docker
+            usermod -a -G docker ec2-user
+            cd /home/ec2-user
+            git clone https://github.com/Ummuhan-web/quest.git
+            cd quest
+            docker build -t ummuhany/quest .
+            docker run -d -p 80:3000 ummuhany/quest
+  WebServerTG:
+    Type: "AWS::ElasticLoadBalancingV2::TargetGroup"
+    Properties:
+      Port: 80
+      Protocol: HTTP
+      TargetType: instance
+      VpcId: !GetAtt WebServersSecurityGroup.VpcId
+  ApplicationLoadBalancer:
+    Type: "AWS::ElasticLoadBalancingV2::LoadBalancer"
+    Properties:
+      IpAddressType: ipv4
+      Scheme: internet-facing
+      SecurityGroups:
+        - !GetAtt ALBSecurityGroup.GroupId
+      Subnets:
+        - subnet-a57c8ffa
+        - subnet-f67c79c8
+        - subnet-c5830288
+        - subnet-9b8c70ba
+        - subnet-b0f701d6
+      Type: application
+  ALBListener:
+    Type: "AWS::ElasticLoadBalancingV2::Listener"
+    Properties:
+      Certificates:
+        - CertificateArn: arn:aws:acm:us-east-1:080546698688:certificate/d83a2514-fa71-4604-a52b-cfe83989a5a0
+      DefaultActions: #required
+        - TargetGroupArn: !Ref WebServerTG
+          Type: forward
+      LoadBalancerArn: !Ref ApplicationLoadBalancer #required
+      Port: 443 #required
+      Protocol: HTTPS #required
+  ALBHTTPlistener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+      - Type: redirect
+        RedirectConfig:
+          Protocol: HTTPS
+          Port: '443'
+          Host: '#{host}'
+          Path: /#{path}
+          Query: '#{query}'
+          StatusCode: HTTP_301
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Port: 80
+      Protocol: HTTP
+  WebServerASG:
+    Type: "AWS::AutoScaling::AutoScalingGroup"
+    Properties:
+      AvailabilityZones:
+        !GetAZs ""
+      DesiredCapacity: 2
+      HealthCheckGracePeriod: 90
+      HealthCheckType: ELB
+      LaunchTemplate:
+        LaunchTemplateId: !Ref WebServerLT
+        Version: !GetAtt WebServerLT.LatestVersionNumber
+      MaxSize: 3 #required
+      MinSize: 1 #required
+      TargetGroupARNs:
+        - !Ref WebServerTG
+Outputs:
+  WebsiteURL:
+    Description: Quest Application Load Balancer URL
+    Value: !Sub
+      - http://${ALBaddress}
+      - ALBaddress: !GetAtt ApplicationLoadBalancer.DNSName
